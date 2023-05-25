@@ -1,24 +1,61 @@
-name: CI Pipeline
+name: Build
+
+ 
 
 on:
-  push:
-    branches:
-      - master
-  pull_request:
-    branches:
-      - master
+  push:
+    branches:
+      - master
+
+ 
+
 
 jobs:
-  build:
-    runs-on: windows-latest
+  build:
+    name: Build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
 
-    steps:
-      - uses: actions/checkout@v2
+      - name: Setup Java JDK
+        uses: actions/setup-java@v3
+        with:
+            java-version: 17
+            # The package type (jre, jdk, jdk+fx)
+            distribution: 'adopt'
+            java-package: jdk
+            # The architecture (x86, x64) of the package.
+            architecture: x64
+            # Path to where the compressed JDK is located. The path could be in your source repository or a local path on the agent.
+            jdkFile: C:\Program Files\SapMachine\JDK\17
+            # ID of the distributionManagement repository in the pom.xml file. Default is `github`
+            server-id: github
+            # Environment variable name for the username for authentication to the Apache Maven repository. Default is $GITHUB_ACTOR
+            server-username: GITHUB_ACTOR
+            # Environment variable name for password or token for authentication to the Apache Maven repository. Default is $GITHUB_TOKEN
+            server-password:  GITHUB_TOKEN
+            # Path to where the settings.xml file will be written. Default is ~/.m2.
+            settings-path : ~/.m2
+            # GPG private key to import. Default is empty string.
+            #gpg-private-key: # optional
+            # Environment variable name for the GPG private key passphrase. Default is $GPG_PASSPHRASE.
+            #gpg-passphrase: # optional
 
-      - name: Set up Java
-        uses: actions/setup-java@v2
-        with:
-          java-version: '17'
+ 
 
-      - name: Build with Maven
-        run: mvn clean install
+          
+
+      - name: Cache Maven packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+      - name: Build and analyze
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Needed to get PR information, if any
+
+        run: mvn clean install
+             
